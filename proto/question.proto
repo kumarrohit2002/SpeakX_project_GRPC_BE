@@ -1,0 +1,60 @@
+syntax = "proto3";
+
+package questionService;
+
+service QuestionService {
+  rpc searchQuestions (SearchRequest) returns (SearchResponse);
+  rpc autoCompleteSuggestions (AutoCompleteRequest) returns (stream AutoCompleteResponse);
+  rpc searchQuestionById (IdRequest) returns (QuestionResponse);
+}
+
+message SearchRequest {
+  string query = 1;
+  int32 page = 2;
+  int32 limit = 3;
+}
+
+message SearchResponse {
+  bool success = 1;
+  string message = 2;
+  repeated Question questions = 3;
+}
+
+message AutoCompleteRequest {
+  string query = 1;
+}
+
+message AutoCompleteResponse {
+  string title = 1;  
+}
+
+message IdRequest {
+  string id = 1;
+}
+
+message QuestionResponse {
+  bool success = 1;
+  string message = 2;
+  Question question = 3;
+}
+
+message Question {
+  string _id = 1; 
+  string title = 2;  
+  string type = 3;  
+  repeated Option options = 4;  
+  string anagramType = 5;  
+  repeated Block blocks = 6;  
+  string solution = 7; 
+}
+
+message Option {
+  string text = 1;  
+  bool isCorrectAnswer = 2;  
+}
+
+message Block {
+  string text = 1;  
+  bool showInOption = 2;  
+  bool isAnswer = 3; 
+}
