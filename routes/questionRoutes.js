@@ -1,7 +1,7 @@
 const express = require('express');
 const grpc = require('@grpc/grpc-js');
 const protoLoader = require('@grpc/proto-loader');
-const PROTO_PATH = __dirname + '/../proto/question.proto';  // Ensure this path is correct
+const PROTO_PATH = __dirname + '/../proto/question.proto';  
 
 const router = express.Router();
 
@@ -10,13 +10,18 @@ const proto = grpc.loadPackageDefinition(packageDefinition).questionService;
 
 const client = new proto.QuestionService('localhost:50051', grpc.credentials.createInsecure());
 
-// Route for searching questions
-router.get('/questions', (req, res) => {
-  const query = req.query.query || '';
 
-  client.searchQuestions({ query, page: 1, limit: 10 }, (err, response) => {
+router.get('/questions', (req, res) => {
+  const query = req.query.query || '';            
+  const page = parseInt(req.query.page, 10) || 1;  
+  const limit = parseInt(req.query.limit, 10) || 20; 
+  const type = req.query.type || 'all';           
+  const types = type === 'all' ? [] : type.split(',');
+
+  client.searchQuestions({ query, page, limit, type: types }, (err, response) => {
     if (err) {
-      return res.status(500).send({
+      console.error('gRPC error:', err);
+      return res.status(500).json({
         success: false,
         message: 'An error occurred while searching for questions',
         error: err.message,
@@ -33,11 +38,13 @@ router.get('/questions', (req, res) => {
     res.status(200).json({
       success: true,
       questions: response.questions,
+      pagination: response.pagination || null,
     });
   });
 });
 
-// Route for getting question by ID
+
+
 router.get('/questionsById/:id', (req, res) => {
   const { id } = req.params;
 

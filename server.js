@@ -18,6 +18,7 @@ app.get('/',(req,res)=>{
 
 const startExpressServer = () => {
   app.listen(PORT, () => {
+    console.log(`http://localhost:${PORT}`)
   });
 };
 

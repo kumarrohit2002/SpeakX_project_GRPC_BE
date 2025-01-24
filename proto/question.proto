@@ -10,14 +10,24 @@ service QuestionService {
 
 message SearchRequest {
   string query = 1;
-  int32 page = 2;
-  int32 limit = 3;
+  int32 page = 2;    
+  int32 limit = 3;       
+  repeated string type = 4;  
 }
+
 
 message SearchResponse {
   bool success = 1;
   string message = 2;
   repeated Question questions = 3;
+  Pagination pagination = 4; 
+}
+
+message Pagination {
+  int32 total = 1;      
+  int32 page = 2;      
+  int32 limit = 3;      
+  int32 totalPages = 4; 
 }
 
 message AutoCompleteRequest {

@@ -50,23 +50,64 @@ const startGrpcServer = async () => {
 
     // Search questions 
     const searchQuestions = async (call, callback) => {
-      const { query, page = 1, limit = 80 } = call.request;
+      const { query, page = 1, limit = 80, type = [] } = call.request;
+      
       try {
-        const results = await Question.find({ title: { $regex: query, $options: 'i' } }).limit(80);    
+        const skip = (page - 1) * limit;
+        
+        // Build the base filter for query
+        const filter = { title: { $regex: query, $options: 'i' } };
+    
+        // If there are types to filter by, add the 'type' condition to the filter
+        if (type.length > 0 && type[0] !== 'all') {
+          filter.type = { $in: type.map(t => t.toUpperCase()) }; // Convert types to uppercase
+        }
+    
+        // Fetch results from the database
+        const results = await Question.find(filter)
+          .skip(skip)
+          .limit(limit)
+          .exec();
+    
+        // If no results found
         if (!results.length) {
           return callback(null, { success: false, message: 'No questions found' });
         }
+    
+        // Get the total count of matching documents for pagination
+        const total = await Question.countDocuments(filter);
+    
+        // Format the results
         const formattedResults = results.map((q) => ({
           _id: q._id,
           title: q.title,
           type: q.type,
         }));
-        callback(null, { success: true, questions: formattedResults });
+    
+        // Pagination data
+        const pagination = {
+          total,
+          page,
+          limit,
+          totalPages: Math.ceil(total / limit),
+        };
+    
+        // Send the response
+        return callback(null, {
+          success: true,
+          questions: formattedResults,
+          pagination,
+        });
       } catch (err) {
         console.error('Error in searchQuestions:', err);
-        callback({ code: grpc.status.INTERNAL, message: 'Internal server error' });
+        callback({
+          code: grpc.status.INTERNAL,
+          message: 'An error occurred while searching for questions',
+        });
       }
     };
+    
+    
     
 
     const autoCompleteSuggestions = async (call) => {

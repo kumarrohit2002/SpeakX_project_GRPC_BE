@@ -2,13 +2,7 @@ const { createClient } = require('redis');
 require('dotenv').config();
 
 const redisClient = createClient({
-  url: `${process.env.REDIS_URL}`,  
-});
-
-// Ensure the Redis client remains connected
-redisClient.on('end', () => {
-  console.warn('Redis client disconnected. Attempting to reconnect...');
-  connectRedis().catch((err) => console.error('Error reconnecting to Redis:', err.message));
+  url: `${process.env.REDIS_URL}`, 
 });
 
 const connectRedis = async () => {
@@ -19,13 +13,43 @@ const connectRedis = async () => {
     }
   } catch (err) {
     console.error('Error connecting to Redis:', err.message);
-    process.exit(1); 
+
+    setTimeout(() => {
+      console.log('Retrying connection to Redis...');
+      connectRedis();
+    }, 5000); 
   }
 };
 
+redisClient.on('error', (err) => {
+  console.error('Redis Client Error:', err.message);
+});
+
+redisClient.on('end', () => {
+  console.warn('Redis client disconnected. Attempting to reconnect...');
+  connectRedis();
+});
+
+const shutdownRedis = async () => {
+  try {
+    if (redisClient.isOpen) {
+      console.log('Closing Redis connection...');
+      await redisClient.quit();
+      console.log('Redis connection closed successfully');
+    }
+  } catch (err) {
+    console.error('Error while closing Redis connection:', err.message);
+  }
+};
+
+process.on('SIGINT', async () => {
+  await shutdownRedis();
+  process.exit(0);
+});
+
+process.on('SIGTERM', async () => {
+  await shutdownRedis();
+  process.exit(0);
+});
+
 module.exports = { redisClient, connectRedis };
-
-
-
-
-
